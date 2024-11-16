@@ -5,4 +5,5 @@ CREATE TABLE accounts (
     first_name VARCHAR(50),
     birthday DATE,
     discord_id VARCHAR(100),
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
