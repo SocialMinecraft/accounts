@@ -2,6 +2,7 @@ use protobuf::{Message, MessageField};
 use async_nats::Client;
 use crate::proto::account::Account;
 use crate::proto::account_create::{CreateAccount, CreateAccountResponse};
+use crate::proto::account_update::AccountUpdated;
 use crate::proto::stats_get::{GetStats, GetStatsResponse};
 use crate::store::Store;
 
@@ -43,9 +44,15 @@ pub async fn create(db: Store, nc: Client, msg: async_nats::Message) -> anyhow::
         // Build and Send Response
         let mut resp = CreateAccountResponse::new();
         resp.success = true;
-        resp.account = MessageField::from(Some(account));
+        resp.account = MessageField::from(Some(account.clone()));
         let encoded: Vec<u8> = resp.write_to_bytes()?;
         nc.publish(reply, encoded.into()).await?;
+
+        // Let's broadcast the account was created.
+        let mut broadcast = AccountUpdated::new();
+        broadcast.account = MessageField::some(account);
+        let encoded: Vec<u8> = resp.write_to_bytes()?;
+        nc.publish("accounts.updated", encoded.into()).await?;
     }
 
     Ok(())
