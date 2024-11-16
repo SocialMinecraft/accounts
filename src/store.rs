@@ -1,9 +1,8 @@
 use anyhow::Result;
-use chrono::{DateTime, NaiveDate, NaiveDateTime};
+use chrono::{DateTime, NaiveDate};
 use protobuf::SpecialFields;
 use sqlx::PgPool;
 use crate::proto::account::Account;
-use crate::proto::stats::Stats;
 
 #[derive(Clone, Debug)]
 pub struct Store {
@@ -48,14 +47,7 @@ impl Store {
 
 
         let re = re?;
-
-        let birthday  = match re.birthday {
-            Some(birthday) => {
-                Some(birthday.and_hms_opt(0,0,0,).unwrap().and_utc().timestamp_millis())
-            },
-            None => None,
-        };
-
+        let birthday = Self::convert_birthday(&re.birthday);
         Ok(Account{
             id: re.id.to_string(),
             first_name: re.first_name,
@@ -63,5 +55,86 @@ impl Store {
             birthday,
             special_fields: SpecialFields::default(),
         })
+    }
+
+    pub async fn get_by_id(&self, id: i64) -> Result<Option<Account>> {
+        struct T {
+            pub id: i64,
+            first_name: Option<String>,
+            birthday: Option<NaiveDate>,
+            discord_id: Option<String>,
+        }
+        let re : sqlx::Result<Option<T>> = sqlx::query_as!(
+            T,
+            r#"
+            SELECT id, first_name, birthday, discord_id
+            FROM accounts
+            WHERE id = $1
+            ;"#,
+            id
+        )
+            .fetch_optional(&self.db)
+            .await;
+
+        let re = re?;
+
+        Ok(match re {
+            Some(t) => {
+                let birthday = Self::convert_birthday(&t.birthday);
+                Some(Account{
+                    id: t.id.to_string(),
+                    first_name: t.first_name,
+                    discord_id: t.discord_id,
+                    birthday,
+                    special_fields: SpecialFields::default(),
+                })
+            },
+            None => {None}
+        })
+    }
+
+    pub async fn get_by_discord(&self, discord_id: &str) -> Result<Option<Account>> {
+        struct T {
+            pub id: i64,
+            first_name: Option<String>,
+            birthday: Option<NaiveDate>,
+            discord_id: Option<String>,
+        }
+        let re : sqlx::Result<Option<T>> = sqlx::query_as!(
+            T,
+            r#"
+            SELECT id, first_name, birthday, discord_id
+            FROM accounts
+            WHERE discord_id = $1
+            ;"#,
+            discord_id
+        )
+            .fetch_optional(&self.db)
+            .await;
+
+        let re = re?;
+
+        Ok(match re {
+            Some(t) => {
+                let birthday = Self::convert_birthday(&t.birthday);
+                Some(Account{
+                    id: t.id.to_string(),
+                    first_name: t.first_name,
+                    discord_id: t.discord_id,
+                    birthday,
+                    special_fields: SpecialFields::default(),
+                })
+            },
+            None => {None}
+        })
+    }
+
+    fn convert_birthday(birthday: &Option<NaiveDate>) -> Option<i64> {
+        match birthday {
+            Some(birthday) => {
+                Some(birthday.and_hms_opt(0,0,0,).unwrap().and_utc().timestamp_millis())
+            },
+            None => None,
+        }
     }
 }

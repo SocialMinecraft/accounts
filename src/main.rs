@@ -4,11 +4,9 @@ mod store;
 mod handlers;
 
 use anyhow::Result;
-use async_nats::Client;
-use protobuf::Message;
 use tokio::task::JoinSet;
-use tracing::info;
 use crate::handlers::create::create;
+use crate::handlers::get::get;
 use crate::store::Store;
 
 #[tokio::main]
@@ -36,8 +34,16 @@ async fn main() -> Result<()> {
     let _store = store.clone();
     set.spawn(async move {
         util::handle_requests(_nc, "accounts.create", move|_nc, msg| {
-            create(store.clone(), _nc, msg)
+            create(_store.clone(), _nc, msg)
         }).await.expect("accounts.create");
+    });
+
+    let _nc = nc.clone();
+    let _store = store.clone();
+    set.spawn(async move {
+        util::handle_requests(_nc, "accounts.get", move|_nc, msg| {
+            get(_store.clone(), _nc, msg)
+        }).await.expect("accounts.get");
     });
 
     set.join_all().await;
