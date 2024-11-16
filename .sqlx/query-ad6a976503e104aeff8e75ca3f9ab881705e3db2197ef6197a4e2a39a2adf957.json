@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE accounts\n            SET first_name = $2, birthday = $3, discord_id = $4\n            WHERE id = $1\n            RETURNING id, first_name, birthday, discord_id\n            ;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "birthday",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "discord_id",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Varchar",
+        "Date",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ad6a976503e104aeff8e75ca3f9ab881705e3db2197ef6197a4e2a39a2adf957"
+}
