@@ -7,6 +7,7 @@ use anyhow::Result;
 use tokio::task::JoinSet;
 use crate::handlers::create::create;
 use crate::handlers::get::get;
+use crate::handlers::update::update;
 use crate::store::Store;
 
 #[tokio::main]
@@ -44,6 +45,14 @@ async fn main() -> Result<()> {
         util::handle_requests(_nc, "accounts.get", move|_nc, msg| {
             get(_store.clone(), _nc, msg)
         }).await.expect("accounts.get");
+    });
+
+    let _nc = nc.clone();
+    let _store = store.clone();
+    set.spawn(async move {
+        util::handle_requests(_nc, "accounts.update", move|_nc, msg| {
+            update(_store.clone(), _nc, msg)
+        }).await.expect("accounts.update");
     });
 
     set.join_all().await;
