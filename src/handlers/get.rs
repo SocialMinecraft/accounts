@@ -13,7 +13,7 @@ pub async fn get(db: Store, nc: Client, msg: async_nats::Message) -> anyhow::Res
         let mut account: Option<Account> = None;
 
         if request.account_id.is_some() {
-            account = db.get_by_id(request.account_id.unwrap().parse::<i64>()?).await?;
+            account = db.get_by_id(request.account_id.unwrap()).await?;
         } else if request.discord_id.is_some() {
             account = db.get_by_discord(request.discord_id.unwrap().as_str()).await?;
         } else if request.minecraft_id.is_some() {

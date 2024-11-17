@@ -1,3 +1,4 @@
+use std::num::ParseIntError;
 use anyhow::Result;
 use chrono::{DateTime, NaiveDate};
 use protobuf::SpecialFields;
@@ -43,7 +44,7 @@ impl Store {
         let re = re?;
         let birthday = Self::convert_birthday(&re.birthday);
         Ok(Account{
-            id: re.id.to_string(),
+            id: Self::id_to_hex_string(re.id),
             first_name: re.first_name,
             discord_id: re.discord_id,
             birthday,
@@ -69,7 +70,7 @@ impl Store {
             WHERE id = $1
             RETURNING id, first_name, birthday, discord_id
             ;"#,
-            account.id.parse::<i64>()?,
+            Self::id_from_hex_string(account.id.as_str())?,
             account.first_name,
             birthday,
             account.discord_id,
@@ -81,7 +82,7 @@ impl Store {
         let re = re?;
         let birthday = Self::convert_birthday(&re.birthday);
         Ok(Account{
-            id: re.id.to_string(),
+            id: Self::id_to_hex_string(re.id),
             first_name: re.first_name,
             discord_id: re.discord_id,
             birthday,
@@ -89,7 +90,7 @@ impl Store {
         })
     }
 
-    pub async fn get_by_id(&self, id: i64) -> Result<Option<Account>> {
+    pub async fn get_by_id(&self, id: String) -> Result<Option<Account>> {
         struct T {
             pub id: i64,
             first_name: Option<String>,
@@ -103,7 +104,7 @@ impl Store {
             FROM accounts
             WHERE id = $1
             ;"#,
-            id
+            Self::id_from_hex_string(id.as_str())?
         )
             .fetch_optional(&self.db)
             .await;
@@ -114,7 +115,7 @@ impl Store {
             Some(t) => {
                 let birthday = Self::convert_birthday(&t.birthday);
                 Some(Account{
-                    id: t.id.to_string(),
+                    id: Self::id_to_hex_string(t.id),
                     first_name: t.first_name,
                     discord_id: t.discord_id,
                     birthday,
@@ -150,7 +151,7 @@ impl Store {
             Some(t) => {
                 let birthday = Self::convert_birthday(&t.birthday);
                 Some(Account{
-                    id: t.id.to_string(),
+                    id: Self::id_to_hex_string(t.id),
                     first_name: t.first_name,
                     discord_id: t.discord_id,
                     birthday,
@@ -178,5 +179,13 @@ impl Store {
             },
             None => None,
         }
+    }
+
+    fn id_to_hex_string(number: i64) -> String {
+        format!("{:016x}", number)
+    }
+
+    fn id_from_hex_string(string: &str) -> Result<i64, ParseIntError> {
+        i64::from_str_radix(string, 16)
     }
 }
